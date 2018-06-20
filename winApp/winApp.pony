@@ -36,11 +36,14 @@ class WindowStyle
     
     new create() => None
 
-primitive WindowHandles
-  fun apply(): Array[HWND] => Array[HWND]
-
-primitive Window
-    fun @apply(ws: WindowSettings): WPARAM =>
+class Window
+    var _error: String = ""
+    var _settings: WindowSettings
+    
+    new create(ws: WindowSettings) =>
+        _settings = ws
+    
+    fun ref init(): None ? =>
         var windowClass: WNDCLASS ref = WNDCLASS
         
         windowClass.lpfnWndProc = @{
@@ -62,60 +65,69 @@ primitive Window
         let windowClassAtom = RegisterClassW(MaybePointer[WNDCLASS](windowClass))
         
         if windowClassAtom == 0 then
-            Debug.out("RegisterClassW Error: ".add(GetLastError().string()))
-            WPARAM(-1)
+            _setError("RegisterClassW") ?
         end
         
         let screenW: I32 = GetSystemMetrics(SMCXSCREEN())
         let screenH: I32 = GetSystemMetrics(SMCYSCREEN())
         
-        var windowW = (screenW.f32() * (ws.width.f32() / 100.0)).i32()
+        var windowW = (screenW.f32() * (_settings.width.f32() / 100.0)).i32()
         
-        if (ws.widthMin > 0) and (windowW < ws.widthMin) then
-            windowW = ws.widthMin
+        if (_settings.widthMin > 0) and (windowW < _settings.widthMin) then
+            windowW = _settings.widthMin
         end
 
-        if (ws.widthMax > 0) and (windowW < ws.widthMax) then
-            windowW = ws.widthMax
+        if (_settings.widthMax > 0) and (windowW < _settings.widthMax) then
+            windowW = _settings.widthMax
         end
         
-        var windowH = (screenH.f32() * (ws.height.f32() / 100.0)).i32()
+        var windowH = (screenH.f32() * (_settings.height.f32() / 100.0)).i32()
 
-        if (ws.heightMin > 0) and (windowH < ws.heightMin) then
-            windowH = ws.heightMin
+        if (_settings.heightMin > 0) and (windowH < _settings.heightMin) then
+            windowH = _settings.heightMin
         end
 
-        if (ws.heightMax > 0) and (windowH < ws.heightMax) then
-            windowH = ws.heightMax
+        if (_settings.heightMax > 0) and (windowH < _settings.heightMax) then
+            windowH = _settings.heightMax
         end
         
         let windowX: I32 = (screenW - windowW) / 2
         let windowY: I32 = (screenH - windowH) / 2
         
-        let windowHandle = CreateWindowExA(WSEXAPPWINDOW(), windowClassAtom, ws.title.cstring(), WSOVERLAPPEDWINDOW(), 
+        let windowHandle = CreateWindowExA(WSEXAPPWINDOW(), windowClassAtom, _settings.title.cstring(), WSOVERLAPPEDWINDOW(), 
                                            windowX, windowY, windowW, windowH, HWND, HMENU, windowClass.hInstance, LPVOID)
         
         if windowHandle.is_null() then
-            Debug.out("CreateWindowExA Error: ".add(GetLastError().string()))
-            WPARAM(-1)
-        else
-            ShowWindow(windowHandle, I32(1))
-            
-            var msg: MSG ref = MSG
-            var ret: I32 = 0
-            
-            repeat
-                ret = GetMessageW(MaybePointer[MSG](msg), windowHandle, UINT(0), UINT(0))
-                
-                if (ret == -1) then
-                    if MSG.message != WMNULL() then
-                        Debug.out("GetMessageW Error: ".add(ret.string()))
-                    end
-                else
-                    TranslateMessage(MaybePointer[MSG](msg))
-                    DispatchMessageW(MaybePointer[MSG](msg))
-                end
-            until ret <= 0 end
-            
-            msg.wParam
+            _setError("CreateWindowExA") ?
         end
+        
+        ShowWindow(windowHandle, I32(1))
+        
+        var msg: MSG ref = MSG
+        var ret: I32 = 0
+        
+        repeat
+            ret = GetMessageW(MaybePointer[MSG](msg), windowHandle, UINT(0), UINT(0))
+            
+            if ret == -1 then
+                if msg.wParam != 0 then
+                    _setError("GetMessageW") ?
+                end
+            else
+                TranslateMessage(MaybePointer[MSG](msg))
+                DispatchMessageW(MaybePointer[MSG](msg))
+            end
+        until ret <= 0 end
+    
+    fun ref _setError(desc: String = "", exception: Bool = true): None ? =>
+        _error = "Error Code #".add(GetLastError().string())
+        
+        if desc != "" then
+            _error = _error.add(" for ").add(desc)
+        end
+        
+        Debug.out(_error)
+        
+        if exception then error end
+    
+    fun getError(): String => _error

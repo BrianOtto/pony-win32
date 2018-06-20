@@ -2,4 +2,10 @@ use "winApp"
 
 actor Main
     new create(env: Env) =>
-        Window(WindowSettings.simple(80, 60, "Hello World"))
+        let win = Window(WindowSettings.simple(80, 60, "Hello World"))
+        
+        try
+            win.init() ?
+        else
+            env.out.print(win.getError())
+        end
