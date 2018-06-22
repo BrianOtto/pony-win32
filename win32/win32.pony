@@ -8,9 +8,11 @@ type ATOM      is WORD
 // and so we specify I32 directly in the code
 // type BOOL      is I32
 
+type BYTE      is Pointer[U8] tag
 type DWORD     is U32
 type HANDLE    is PVOID
 type HBRUSH    is HANDLE
+type HDC       is HANDLE
 type HICON     is HANDLE
 type HCURSOR   is HICON
 type HINSTANCE is HANDLE
@@ -114,9 +116,27 @@ struct MSG
     
     new create() => None
 
+struct PAINTSTRUCT
+    var hdc: HDC = HDC
+    var fErase: I32 /* BOOL */ = 0
+    var rcPaint: RECT = RECT
+    var fRestore: I32 /* BOOL */ = 0
+    var fIncUpdate: I32 /* BOOL */ = 0
+    var rgbReserved: BYTE = BYTE
+    
+    new create() => None
+
 struct POINT
     var x: LONG = 0
     var y: LONG = 0
+    
+    new create() => None
+
+struct RECT
+    var left: LONG = 0
+    var top: LONG = 0
+    var right: LONG = 0
+    var bottom: LONG = 0
     
     new create() => None
 
@@ -141,6 +161,10 @@ struct WNDCLASS
 
 // Functions
 
+primitive BeginPaint
+    fun @apply(hWnd: HWND, lpPaint: MaybePointer[PAINTSTRUCT]): HDC =>
+        @BeginPaint[HDC](hWnd, lpPaint)
+
 primitive CreateWindowExA
     fun @apply(dwExStyle: DWORD, lpClassName: ATOM /* LPCTSTR */, lpWindowName: LPCTSTR, dwStyle: DWORD, x: I32, y: I32, 
                nWidth: I32, nHeight: I32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID): HWND =>
@@ -154,6 +178,10 @@ primitive DefWindowProcW
 primitive DispatchMessageW
     fun @apply(lpMsg: MaybePointer[MSG]): LRESULT =>
         @DispatchMessageW[LRESULT](lpMsg)
+
+primitive EndPaint
+    fun @apply(hWnd: HWND, lpPaint: MaybePointer[PAINTSTRUCT]): HDC =>
+        @EndPaint[HDC](hWnd, lpPaint)
 
 primitive GetLastError
     fun @apply(): DWORD =>

@@ -1,5 +1,5 @@
-use "../win32"
 use "debug"
+use "../win32"
 
 class WindowSettings
     var x: I32 = 0
