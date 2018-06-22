@@ -48,9 +48,6 @@ class Message
         
         var hdc = BeginPaint(hWnd, MaybePointer[PAINTSTRUCT](ps))
         
-        // TODO: We sometimes get a blank canvas and the following error when the window is closed
-        // _cairo_win32_save_initial_clip: The handle is invalid.
-        
         var surface = CairoWin32SurfaceCreate(hdc)
         var cr = CairoCreate(surface)
         
