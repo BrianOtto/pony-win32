@@ -39,25 +39,18 @@ class WindowStyle
 class Window
     var _error: String = ""
     var _settings: WindowSettings
+    var _messageHandler: @{(HWND, UINT, WPARAM, LPARAM): LRESULT} = 
+        @{(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
+            SetLastError(ERRORINVALIDHANDLE())
+            -1
+        }
     
     new create(ws: WindowSettings) =>
         _settings = ws
     
     fun ref init(): None ? =>
         var windowClass: WNDCLASS ref = WNDCLASS
-        
-        windowClass.lpfnWndProc = @{
-            (hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
-            
-            match msg
-            | WMDESTROY() =>
-                PostQuitMessage(0)
-                0
-            else
-                DefWindowProcW(hWnd, msg, wParam, lParam)
-            end
-        }
-        
+        windowClass.lpfnWndProc = _messageHandler
         windowClass.hCursor = LoadCursorW(HINSTANCE, IDCARROW())
         windowClass.hbrBackground = GetSysColorBrush(COLOR3DFACE())
         windowClass.lpszClassName = "winApp".cstring()
@@ -131,3 +124,6 @@ class Window
         if exception then error end
     
     fun getError(): String => _error
+    
+    fun ref setMessageHandler(callback: @{(HWND, UINT, WPARAM, LPARAM): LRESULT}) =>
+        _messageHandler = callback

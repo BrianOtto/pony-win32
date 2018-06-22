@@ -47,6 +47,10 @@ primitive COLOR3DFACE
 primitive IDCARROW
     fun apply(): I32 => 32512
 
+// Constants - System Error Codes
+primitive ERRORINVALIDHANDLE
+    fun apply(): DWORD => 6
+
 // Constants - System Metrics
 
 primitive SMCXSCREEN
@@ -178,6 +182,10 @@ primitive PostQuitMessage
 primitive RegisterClassW
     fun @apply(lpWndClass: MaybePointer[WNDCLASS]): ATOM =>
         @RegisterClassW[ATOM](lpWndClass)
+
+primitive SetLastError
+    fun @apply(dwErrCode: DWORD): VOID =>
+        @SetLastError[VOID](dwErrCode)
 
 primitive ShowWindow
     fun @apply(hWnd: HWND, nCmdShow: I32): I32 /* BOOL */ =>
