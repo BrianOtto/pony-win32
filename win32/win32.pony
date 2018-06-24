@@ -25,7 +25,7 @@ type LPARAM    is LONGPTR
 type LPCSTR    is Pointer[U8] tag
 
 // use LPCWSTR when Pony supports WCHAR
-// and move to CreateWindowExW too
+// and update to the "W" functions too
 type LPCTSTR   is LPCSTR
 
 type LPCWSTR   is WCHAR
@@ -63,6 +63,9 @@ primitive SMCYSCREEN
 
 // Constants - Window Messages
 
+primitive WMCREATE
+    fun apply(): UINT => 0x0001
+
 primitive WMCLOSE
     fun apply(): UINT => 0x0010
 
@@ -79,6 +82,9 @@ primitive WMPAINT
 
 primitive WSCAPTION
     fun apply(): DWORD => 0x00C00000
+
+primitive WSCHILD
+    fun apply(): DWORD => 0x40000000
 
 primitive WSMAXIMIZEBOX
     fun apply(): DWORD => 0x00010000
@@ -166,18 +172,18 @@ primitive BeginPaint
         @BeginPaint[HDC](hWnd, lpPaint)
 
 primitive CreateWindowExA
-    fun @apply(dwExStyle: DWORD, lpClassName: ATOM /* LPCTSTR */, lpWindowName: LPCTSTR, dwStyle: DWORD, x: I32, y: I32, 
+    fun @apply(dwExStyle: DWORD, lpClassName: LPCTSTR, lpWindowName: LPCTSTR, dwStyle: DWORD, x: I32, y: I32, 
                nWidth: I32, nHeight: I32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID): HWND =>
         @CreateWindowExA[HWND](dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, 
                                nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)
 
-primitive DefWindowProcW
+primitive DefWindowProcA
     fun @apply(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
-        @DefWindowProcW[LRESULT](hWnd, msg, wParam, lParam)
+        @DefWindowProcA[LRESULT](hWnd, msg, wParam, lParam)
 
-primitive DispatchMessageW
+primitive DispatchMessageA
     fun @apply(lpMsg: MaybePointer[MSG]): LRESULT =>
-        @DispatchMessageW[LRESULT](lpMsg)
+        @DispatchMessageA[LRESULT](lpMsg)
 
 primitive EndPaint
     fun @apply(hWnd: HWND, lpPaint: MaybePointer[PAINTSTRUCT]): HDC =>
@@ -187,9 +193,9 @@ primitive GetLastError
     fun @apply(): DWORD =>
         @GetLastError[DWORD]()
 
-primitive GetMessageW
+primitive GetMessageA
     fun @apply(lpMsg: MaybePointer[MSG], hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT): I32 /* BOOL */ =>
-        @GetMessageW[I32](lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax)
+        @GetMessageA[I32](lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax)
 
 primitive GetSysColorBrush
     fun @apply(color: I32): HBRUSH =>
@@ -199,17 +205,21 @@ primitive GetSystemMetrics
     fun @apply(nIndex: I32): I32 =>
         @GetSystemMetrics[I32](nIndex)
 
-primitive LoadCursorW
+primitive GetWindowRect
+    fun @apply(hWnd: HWND, lpRect: MaybePointer[RECT]): I32 /* BOOL */ =>
+        @GetWindowRect[I32](hWnd, lpRect)
+
+primitive LoadCursorA
     fun @apply(hInstance: HINSTANCE, lpCursorName: I32 /* LPCTSTR */): HCURSOR =>
-        @LoadCursorW[HCURSOR](hInstance, lpCursorName)
+        @LoadCursorA[HCURSOR](hInstance, lpCursorName)
 
 primitive PostQuitMessage
     fun @apply(nExitCode: I32): VOID =>
         @PostQuitMessage[VOID](nExitCode)
 
-primitive RegisterClassW
+primitive RegisterClassA
     fun @apply(lpWndClass: MaybePointer[WNDCLASS]): ATOM =>
-        @RegisterClassW[ATOM](lpWndClass)
+        @RegisterClassA[ATOM](lpWndClass)
 
 primitive SetLastError
     fun @apply(dwErrCode: DWORD): VOID =>
