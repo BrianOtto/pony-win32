@@ -25,7 +25,8 @@ class WindowSettings
     var title: String = ""
     
     var parent: HWND = HWND
-    var menuID: HMENU = HMENU
+    var menuId: U32 = 0
+    var menuHandle: HWND = HWND
     var handle: HWND = HWND
     
     var style: WindowStyle = WindowStyle
@@ -37,10 +38,11 @@ class WindowSettings
         height = sHeight
         title  = sTitle
     
-    new control(sWidth: I32, sHeight: I32, sParent: HWND, sSystemClass: String, sTitle: String = "") =>
+    new control(sWidth: I32, sHeight: I32, sParent: HWND, sSystemClass: String, sMenuId: U32, sTitle: String = "") =>
         width  = sWidth
         height = sHeight
         parent = sParent
+        menuId = sMenuId
         style.systemStyle = WSCHILD()
         style.systemClass = sSystemClass
         title  = sTitle
@@ -90,10 +92,12 @@ class Window
         
         setCoordinates()
         
+        var menu = (_settings.menuId, _settings.menuHandle)
+        
         let windowHandle = 
             CreateWindowExA(WSEXAPPWINDOW(), windowClassName, _settings.title.cstring(), _settings.style.systemStyle, 
                             _settings.x, _settings.y, _settings.widthPixels, _settings.heightPixels, 
-                            _settings.parent, _settings.menuID, windowClassInstance, LPVOID)
+                            _settings.parent, menu, windowClassInstance, LPVOID)
         
         if windowHandle.is_null() then
             return _setError("CreateWindowExA")

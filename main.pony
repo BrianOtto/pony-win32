@@ -23,6 +23,10 @@ actor Main
     
     fun @handle(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
         match msg
+        | WMCOMMAND() =>
+            if LOWORD(wParam.u32()) == 100 then
+                Event.buttonClick()
+            end
         | WMCREATE() =>
             Message.onCreate(hWnd, wParam, lParam)
         | WMPAINT() =>
@@ -37,7 +41,7 @@ actor Main
 
 class Message
     fun onCreate(hWnd: HWND, wParam: WPARAM, lParam: LPARAM): None =>
-        Window(WindowSettings.control(10, 5, hWnd, "button", "Click Me")).init()
+        Window(WindowSettings.control(10, 5, hWnd, "button", 100, "Click Me")).init()
         
     fun onPaint(hWnd: HWND, wParam: WPARAM, lParam: LPARAM): None =>
         var ps: PAINTSTRUCT ref = PAINTSTRUCT
@@ -58,4 +62,7 @@ class Message
         CairoSurfaceDestroy(surface)
         
         EndPaint(hWnd, MaybePointer[PAINTSTRUCT](ps))
-    
+
+class Event
+    fun buttonClick(): None =>
+        Debug.out("The button was clicked")

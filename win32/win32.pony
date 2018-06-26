@@ -16,7 +16,7 @@ type HDC       is HANDLE
 type HICON     is HANDLE
 type HCURSOR   is HICON
 type HINSTANCE is HANDLE
-type HMENU     is HANDLE
+type HMENU     is (U32, HANDLE)
 type HWND      is HANDLE
 type INTPTR    is I64
 type LONG      is I32
@@ -68,6 +68,9 @@ primitive WMCREATE
 
 primitive WMCLOSE
     fun apply(): UINT => 0x0010
+
+primitive WMCOMMAND
+    fun apply(): UINT => 0x0111
 
 primitive WMDESTROY
     fun apply(): UINT => 0x0002
@@ -174,8 +177,14 @@ primitive BeginPaint
 primitive CreateWindowExA
     fun @apply(dwExStyle: DWORD, lpClassName: LPCTSTR, lpWindowName: LPCTSTR, dwStyle: DWORD, x: I32, y: I32, 
                nWidth: I32, nHeight: I32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID): HWND =>
-        @CreateWindowExA[HWND](dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, 
-                               nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)
+        
+        if hMenu._1 > 0 then
+            @CreateWindowExA[HWND](dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, 
+                                   nWidth, nHeight, hWndParent, hMenu._1, hInstance, lpParam)
+        else
+            @CreateWindowExA[HWND](dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, 
+                                   nWidth, nHeight, hWndParent, hMenu._2, hInstance, lpParam)
+        end
 
 primitive DefWindowProcA
     fun @apply(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
@@ -232,3 +241,13 @@ primitive ShowWindow
 primitive TranslateMessage
     fun @apply(lpMsg: MaybePointer[MSG]): I32 /* BOOL */ =>
         @TranslateMessage[I32](lpMsg)
+
+// Macros
+
+primitive LOWORD
+    fun apply(dwValue: DWORD): WORD =>
+        (dwValue and 0xFFFF).u16()
+
+primitive HIWORD
+    fun apply(dwValue: DWORD): WORD =>
+        (dwValue >> 16).u16()
