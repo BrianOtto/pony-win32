@@ -6,21 +6,21 @@ class WindowSettings
     var x: I32 = 0
     var y: I32 = 0
     
-    // percentage
-    var width: I32 = 100
-    
     // pixels
+    var width: I32 = 100
     var widthMin: I32 = 0
     var widthMax: I32 = 0
-    var widthPixels: I32 = 0
     
-    // percentage
-    var height: I32 = 100
+    // percent
+    var widthPct: I32 = 0
     
     // pixels
+    var height: I32 = 100
     var heightMin: I32 = 0
     var heightMax: I32 = 0
-    var heightPixels: I32 = 0
+    
+    // percent
+    var heightPct: I32 = 0
     
     var title: String = ""
     
@@ -33,19 +33,35 @@ class WindowSettings
     
     new create() => None
     
-    new window(sWidth: I32, sHeight: I32, sTitle: String) =>
-        width  = sWidth
-        height = sHeight
-        title  = sTitle
+    new window(wsWidth: I32, wsHeight: I32, wsTitle: String, wsIsPixels: Bool = false) =>
+        if wsIsPixels then
+            width = wsWidth
+            height = wsHeight
+        else
+            widthPct = wsWidth
+            heightPct = wsHeight
+        end
+        
+        title = wsTitle
     
-    new control(sWidth: I32, sHeight: I32, sParent: HWND, sSystemClass: String, sMenuId: U32, sTitle: String = "") =>
-        width  = sWidth
-        height = sHeight
-        parent = sParent
-        menuId = sMenuId
+    new control(wsWidth: I32, wsHeight: I32, wsParent: HWND, wsSystemClass: String, 
+                wsMenuId: U32, wsTitle: String = "", wsIsPixels: Bool = true) =>
+        
+        if wsIsPixels then
+            width = wsWidth
+            height = wsHeight
+        else
+            widthPct = wsWidth
+            heightPct = wsHeight
+        end
+        
+        parent = wsParent
+        menuId = wsMenuId
+        
         style.systemStyle = WSCHILD()
-        style.systemClass = sSystemClass
-        title  = sTitle
+        style.systemClass = wsSystemClass
+        
+        title  = wsTitle
     
 class WindowStyle
     var cursor: I32 = IDCARROW()
@@ -96,7 +112,7 @@ class Window
         
         let windowHandle = 
             CreateWindowExA(WSEXAPPWINDOW(), windowClassName, _settings.title.cstring(), _settings.style.systemStyle, 
-                            _settings.x, _settings.y, _settings.widthPixels, _settings.heightPixels, 
+                            _settings.x, _settings.y, _settings.width, _settings.height, 
                             _settings.parent, menu, windowClassInstance, LPVOID)
         
         if windowHandle.is_null() then
@@ -141,7 +157,14 @@ class Window
     
     fun getError(): String => _error
     
-    fun ref setMessageHandler(callback: @{(HWND, UINT, WPARAM, LPARAM): LRESULT}) =>
+    fun ref getSettings(): WindowSettings => _settings
+    
+    fun ref setSettings(ws: WindowSettings): None =>
+        _settings = ws
+        
+        MoveWindow(_settings.handle, _settings.x, _settings.y, _settings.width, _settings.height, 1)
+    
+    fun ref setMessageHandler(callback: @{(HWND, UINT, WPARAM, LPARAM): LRESULT}): None =>
         _messageHandler = callback
     
     fun ref setCoordinates(): None =>
@@ -159,29 +182,31 @@ class Window
             parentHeight = pr.bottom - pr.top
         end
         
-        if _settings.width > 0 then
-            _settings.widthPixels = (parentWidth.f32() * (_settings.width.f32() / 100.0)).i32()
+        if _settings.widthPct > 0 then
+            _settings.width = (parentWidth.f32() * (_settings.widthPct.f32() / 100.0)).i32()
             
-            if (_settings.widthMin > 0) and (_settings.widthPixels < _settings.widthMin) then
-                _settings.widthPixels = _settings.widthMin
+            if (_settings.widthMin > 0) and (_settings.width < _settings.widthMin) then
+                _settings.width = _settings.widthMin
             end
             
-            if (_settings.widthMax > 0) and (_settings.widthPixels < _settings.widthMax) then
-                _settings.widthPixels = _settings.widthMax
+            if (_settings.widthMax > 0) and (_settings.width > _settings.widthMax) then
+                _settings.width = _settings.widthMax
             end
         end
         
-        if _settings.height > 0 then
-            _settings.heightPixels = (parentHeight.f32() * (_settings.height.f32() / 100.0)).i32()
+        if _settings.heightPct > 0 then
+            _settings.height = (parentHeight.f32() * (_settings.heightPct.f32() / 100.0)).i32()
 
-            if (_settings.heightMin > 0) and (_settings.heightPixels < _settings.heightMin) then
-                _settings.heightPixels = _settings.heightMin
+            if (_settings.heightMin > 0) and (_settings.height < _settings.heightMin) then
+                _settings.height = _settings.heightMin
             end
 
-            if (_settings.heightMax > 0) and (_settings.heightPixels < _settings.heightMax) then
-                _settings.heightPixels = _settings.heightMax
+            if (_settings.heightMax > 0) and (_settings.height > _settings.heightMax) then
+                _settings.height = _settings.heightMax
             end
         end
         
-        _settings.x = (parentWidth - _settings.widthPixels) / 2
-        _settings.y = (parentHeight - _settings.heightPixels) / 2
+        // center the window within the parent
+        // TODO: develop an automatic layout system
+        _settings.x = (parentWidth - _settings.width) / 2
+        _settings.y = (parentHeight - _settings.height) / 2

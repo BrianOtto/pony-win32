@@ -29,6 +29,12 @@ type LPCSTR    is Pointer[U8] tag
 type LPCTSTR   is LPCSTR
 
 type LPCWSTR   is WCHAR
+type LPSTR     is Pointer[U8] tag
+
+// use LPWSTR when Pony supports WCHAR
+// and update to the "W" functions too
+type LPTSTR    is LPSTR
+
 type LRESULT   is LONGPTR
 type LPVOID    is Pointer[U8] tag
 type PVOID     is Pointer[U8] tag
@@ -60,6 +66,11 @@ primitive SMCXSCREEN
 
 primitive SMCYSCREEN
     fun apply(): I32 => 1
+
+// Constants - Window Long / Pointers
+
+primitive GWLPUSERDATA
+    fun apply(): UINT /* I32 */ => -21
 
 // Constants - Window Messages
 
@@ -204,7 +215,7 @@ primitive GetLastError
 
 primitive GetMessageA
     fun @apply(lpMsg: MaybePointer[MSG], hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT): I32 /* BOOL */ =>
-        @GetMessageA[I32](lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax)
+        @GetMessageA[I32 /* BOOL */](lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax)
 
 primitive GetSysColorBrush
     fun @apply(color: I32): HBRUSH =>
@@ -214,13 +225,30 @@ primitive GetSystemMetrics
     fun @apply(nIndex: I32): I32 =>
         @GetSystemMetrics[I32](nIndex)
 
+primitive GetWindowLongPtrA
+    // The documentation specifies hWnd as a HWND, but in practice this is LPARAM
+    // Similarily, nIndex is specified as I32, but in practice this can be a negative value
+    // We are also using SetWindowLongPtrA to store a pointer and so it must return a HWND
+    fun @apply(hWnd: LPARAM /* HWND */, nIndex: UINT /* I32 */): HWND /* LONGPTR */ =>
+        @GetWindowLongPtrA[HWND /* LONGPTR */](hWnd, nIndex)
+
 primitive GetWindowRect
     fun @apply(hWnd: HWND, lpRect: MaybePointer[RECT]): I32 /* BOOL */ =>
-        @GetWindowRect[I32](hWnd, lpRect)
+        @GetWindowRect[I32 /* BOOL */](hWnd, lpRect)
+
+struct CSTRINGOUT
+    
+primitive GetWindowTextA
+    fun @apply(hWnd: HWND, lpString: LPTSTR, nMaxCount: I32): I32 =>
+        @GetWindowTextA[I32](hWnd, lpString, nMaxCount)
 
 primitive LoadCursorA
     fun @apply(hInstance: HINSTANCE, lpCursorName: I32 /* LPCTSTR */): HCURSOR =>
         @LoadCursorA[HCURSOR](hInstance, lpCursorName)
+
+primitive MoveWindow
+    fun @apply(hWnd: HWND, x: I32, y: I32, nWidth: I32, nHeight: I32, bRepaint: I32 /* BOOL */): I32 /* BOOL */ =>
+        @MoveWindow[I32 /* BOOL */](hWnd, x, y, nWidth, nHeight, bRepaint)
 
 primitive PostQuitMessage
     fun @apply(nExitCode: I32): VOID =>
@@ -234,13 +262,18 @@ primitive SetLastError
     fun @apply(dwErrCode: DWORD): VOID =>
         @SetLastError[VOID](dwErrCode)
 
+primitive SetWindowLongPtrA
+    // See the comments for GetWindowLongPtrA on why we have changed the types
+    fun @apply(hWnd: HWND, nIndex: UINT /* I32 */, dwNewLong: HWND /* LONGPTR */): LONGPTR =>
+        @SetWindowLongPtrA[LONGPTR](hWnd, nIndex, dwNewLong)
+
 primitive ShowWindow
     fun @apply(hWnd: HWND, nCmdShow: I32): I32 /* BOOL */ =>
-        @ShowWindow[I32](hWnd, nCmdShow)
+        @ShowWindow[I32 /* BOOL */](hWnd, nCmdShow)
 
 primitive TranslateMessage
     fun @apply(lpMsg: MaybePointer[MSG]): I32 /* BOOL */ =>
-        @TranslateMessage[I32](lpMsg)
+        @TranslateMessage[I32 /* BOOL */](lpMsg)
 
 // Macros
 
