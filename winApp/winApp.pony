@@ -84,17 +84,17 @@ class Window
         _settings = ws
     
     fun ref init(): DWORD =>
-        var windowClassName: LPCSTR = LPCSTR
+        var windowClassName: LPCWSTR = LPCWSTR
         var windowClassInstance: HINSTANCE = HINSTANCE
         
         if _settings.style.systemClass == "" then
-            var windowClass: WNDCLASSA ref = WNDCLASSA
+            var windowClass: WNDCLASSW ref = WNDCLASSW
             windowClass.lpfnWndProc = _messageHandler
-            windowClass.hCursor = LoadCursorA(HINSTANCE, _settings.style.cursor)
+            windowClass.hCursor = LoadCursorW(HINSTANCE, _settings.style.cursor)
             windowClass.hbrBackground = GetSysColorBrush(_settings.style.backgroundColor)
-            windowClass.lpszClassName = "winApp".cstring() // TODO: use a random name
+            windowClass.lpszClassName = Util.stringToWideChar("winApp").cpointer() // TODO: use a random name
             
-            let windowClassAtom = RegisterClassA(MaybePointer[WNDCLASSA](windowClass))
+            let windowClassAtom = RegisterClassW(MaybePointer[WNDCLASSW](windowClass))
             
             if windowClassAtom == 0 then
                 return _setError("RegisterClassW")
@@ -103,17 +103,18 @@ class Window
             windowClassName = windowClass.lpszClassName
             windowClassInstance = windowClass.hInstance
         else
-            windowClassName = _settings.style.systemClass.cstring()
+            windowClassName = Util.stringToWideChar(_settings.style.systemClass).cpointer()
         end
         
         setCoordinates()
         
-        var menu = (_settings.menuId, _settings.menuHandle)
+        var windowTitle = Util.stringToWideChar(_settings.title).cpointer()
+        var windowMenu = (_settings.menuId, _settings.menuHandle)
         
         let windowHandle = 
-            CreateWindowExA(WSEXAPPWINDOW(), windowClassName, _settings.title.cstring(), _settings.style.systemStyle, 
+            CreateWindowExW(WSEXAPPWINDOW(), windowClassName, windowTitle, _settings.style.systemStyle, 
                             _settings.x, _settings.y, _settings.width, _settings.height, 
-                            _settings.parent, menu, windowClassInstance, LPVOID)
+                            _settings.parent, windowMenu, windowClassInstance, LPVOID)
         
         if windowHandle.is_null() then
             return _setError("CreateWindowExA")
@@ -128,7 +129,7 @@ class Window
             var ret: I32 = 0
             
             repeat
-                ret = GetMessageA(MaybePointer[MSG](msg), windowHandle, UINT(0), UINT(0))
+                ret = GetMessageW(MaybePointer[MSG](msg), windowHandle, UINT(0), UINT(0))
                 
                 if ret == -1 then
                     if msg.wParam != 0 then
@@ -136,7 +137,7 @@ class Window
                     end
                 else
                     TranslateMessage(MaybePointer[MSG](msg))
-                    DispatchMessageA(MaybePointer[MSG](msg))
+                    DispatchMessageW(MaybePointer[MSG](msg))
                 end
             until ret <= 0 end
         end
@@ -217,11 +218,7 @@ primitive Util
         var wcLength = MultiByteToWideChar(CPUTF8(), 0, s.cpointer(), s.size().i32(), Pointer[U16], 0)
         
         // create a U16 buffer for the wide char by allocating space in a pointer
-        var wcString = Array[U16].from_cpointer(Pointer[U16], wcLength.usize(), wcLength.usize())
-        
-        // push a NULL terminator onto the buffer and then reduce the size by one to keep the original length
-        // I don't know why this is necessary and using other array functions causes the MultiByteToWideChar to fail
-        try wcString.>push(0).>pop()? end
+        var wcString = wideCharBuffer(wcLength.usize())
         
         MultiByteToWideChar(CPUTF8(), 0, s.cpointer(), s.size().i32(), wcString.cpointer(), wcLength)
         
@@ -237,7 +234,7 @@ primitive Util
         // for the from_array() conversion that gets returned
         var csString = recover val
             var csStringAsRef = Array[U8].from_cpointer(Pointer[U8], csLength.usize(), csLength.usize())
-            try csStringAsRef.>push(0).>pop()? end // see the note in stringToWideChar()
+            try csStringAsRef.>push(0).>pop()? end // see the note in wideCharBuffer()
             csStringAsRef
         end
         
@@ -245,3 +242,13 @@ primitive Util
                             Pointer[U8], Pointer[U8])
         
         String.from_array(csString)
+    
+    fun wideCharBuffer(size: USize): Array[U16] =>
+        // create a U16 buffer for the wide char by allocating space in a pointer
+        var wcString = Array[U16].from_cpointer(Pointer[U16], size, size)
+        
+        // push a NULL terminator onto the buffer and then reduce the size by one to keep the original length
+        // I don't know why this is necessary and using other array functions causes the Window to crash
+        try wcString.>push(0).>pop()? end
+        
+        wcString

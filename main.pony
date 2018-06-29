@@ -34,7 +34,7 @@ actor Main
         | WMDESTROY() =>
             PostQuitMessage(0)
         else
-            return DefWindowProcA(hWnd, msg, wParam, lParam)
+            return DefWindowProcW(hWnd, msg, wParam, lParam)
         end
         
         0
@@ -56,7 +56,7 @@ primitive Message
         // button window so that it can be accessed when the button is clicked.
         // Other alternatives would be to use FindWindowEx or EnumChildWindows or 
         // possibly the global variables available in Thread local Storage
-        SetWindowLongPtrA(buttonSettings.handle, GWLPUSERDATA(), txtFldSettings.handle)
+        SetWindowLongPtrW(buttonSettings.handle, GWLPUSERDATA(), txtFldSettings.handle)
         
     fun onPaint(hWnd: HWND, wParam: WPARAM, lParam: LPARAM): None =>
         var ps: PAINTSTRUCT ref = PAINTSTRUCT
@@ -82,30 +82,16 @@ primitive Event
     fun buttonClick(hWnd: HWND, wParam: WPARAM, lParam: LPARAM): None =>
         Debug.out("The button was clicked")
         
-        let txtFldHandle = GetWindowLongPtrA(lParam, GWLPUSERDATA())
+        let txtFldHandle = GetWindowLongPtrW(lParam, GWLPUSERDATA())
         
-        // experimental WCHAR conversion
-        // TODO: add support for the "W" functions
-        var wcString = Util.stringToWideChar("Is this working?")
-        var csString = Util.wideCharToString(wcString)
-        Debug.out(csString)
+        let txtFldMax: USize = 20
         
-        var txtFldMax: USize = 20
+        // allocate a buffer for the text
+        var txtFldVal = Util.wideCharBuffer(txtFldMax)
         
-        // allocate a buffer for the text 
-        var txtFldVal = String(txtFldMax)
+        // populate the buffer with the window's text
+        GetWindowTextW(txtFldHandle, txtFldVal.cpointer(), txtFldMax.i32())
         
-        // send a pointer to this buffer
-        GetWindowTextA(txtFldHandle, txtFldVal.cstring(), txtFldMax.i32())
-        
-        // truncate the buffer to the original length
-        
-        // I don't know why this step is necessary, but
-        // it probably has something to do with adding
-        // a null terminator when one is missing
-        
-        txtFldVal.truncate(txtFldMax)
-        
-        Debug.out(txtFldVal)
+        Debug.out(Util.wideCharToString(txtFldVal))
         
         

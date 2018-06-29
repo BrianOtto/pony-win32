@@ -204,7 +204,7 @@ primitive BeginPaint
         @BeginPaint[HDC](hWnd, lpPaint)
 
 primitive CreateWindowExA
-    fun @apply(dwExStyle: DWORD, lpClassName: LPCSTR /* LPCTSTR */, lpWindowName: LPCSTR /* LPCTSTR */, dwStyle: DWORD, x: I32, y: I32, 
+    fun @apply(dwExStyle: DWORD, lpClassName: LPCSTR, lpWindowName: LPCSTR, dwStyle: DWORD, x: I32, y: I32, 
                nWidth: I32, nHeight: I32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID): HWND =>
         
         if hMenu._1 > 0 then
@@ -215,13 +215,33 @@ primitive CreateWindowExA
                                    nWidth, nHeight, hWndParent, hMenu._2, hInstance, lpParam)
         end
 
+primitive CreateWindowExW
+    fun @apply(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, x: I32, y: I32, 
+               nWidth: I32, nHeight: I32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID): HWND =>
+        
+        if hMenu._1 > 0 then
+            @CreateWindowExW[HWND](dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, 
+                                   nWidth, nHeight, hWndParent, hMenu._1, hInstance, lpParam)
+        else
+            @CreateWindowExW[HWND](dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, 
+                                   nWidth, nHeight, hWndParent, hMenu._2, hInstance, lpParam)
+        end
+
 primitive DefWindowProcA
     fun @apply(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
         @DefWindowProcA[LRESULT](hWnd, msg, wParam, lParam)
 
+primitive DefWindowProcW
+    fun @apply(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT =>
+        @DefWindowProcW[LRESULT](hWnd, msg, wParam, lParam)
+
 primitive DispatchMessageA
     fun @apply(lpMsg: MaybePointer[MSG]): LRESULT =>
         @DispatchMessageA[LRESULT](lpMsg)
+
+primitive DispatchMessageW
+    fun @apply(lpMsg: MaybePointer[MSG]): LRESULT =>
+        @DispatchMessageW[LRESULT](lpMsg)
 
 primitive EndPaint
     fun @apply(hWnd: HWND, lpPaint: MaybePointer[PAINTSTRUCT]): HDC =>
@@ -234,6 +254,10 @@ primitive GetLastError
 primitive GetMessageA
     fun @apply(lpMsg: MaybePointer[MSG], hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT): I32 /* BOOL */ =>
         @GetMessageA[I32 /* BOOL */](lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax)
+
+primitive GetMessageW
+    fun @apply(lpMsg: MaybePointer[MSG], hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT): I32 /* BOOL */ =>
+        @GetMessageW[I32 /* BOOL */](lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax)
 
 primitive GetSysColorBrush
     fun @apply(color: I32): HBRUSH =>
@@ -250,19 +274,30 @@ primitive GetWindowLongPtrA
     fun @apply(hWnd: LPARAM /* HWND */, nIndex: UINT /* I32 */): HWND /* LONGPTR */ =>
         @GetWindowLongPtrA[HWND /* LONGPTR */](hWnd, nIndex)
 
+primitive GetWindowLongPtrW
+    // See the comments for GetWindowLongPtrA on why we have changed the types
+    fun @apply(hWnd: LPARAM /* HWND */, nIndex: UINT /* I32 */): HWND /* LONGPTR */ =>
+        @GetWindowLongPtrW[HWND /* LONGPTR */](hWnd, nIndex)
+
 primitive GetWindowRect
     fun @apply(hWnd: HWND, lpRect: MaybePointer[RECT]): I32 /* BOOL */ =>
         @GetWindowRect[I32 /* BOOL */](hWnd, lpRect)
 
-struct CSTRINGOUT
-    
 primitive GetWindowTextA
-    fun @apply(hWnd: HWND, lpString: LPCSTR /* LPTSTR */, nMaxCount: I32): I32 =>
+    fun @apply(hWnd: HWND, lpString: LPCSTR, nMaxCount: I32): I32 =>
         @GetWindowTextA[I32](hWnd, lpString, nMaxCount)
+
+primitive GetWindowTextW
+    fun @apply(hWnd: HWND, lpString: LPCWSTR, nMaxCount: I32): I32 =>
+        @GetWindowTextW[I32](hWnd, lpString, nMaxCount)
 
 primitive LoadCursorA
     fun @apply(hInstance: HINSTANCE, lpCursorName: I32 /* LPCTSTR */): HCURSOR =>
         @LoadCursorA[HCURSOR](hInstance, lpCursorName)
+
+primitive LoadCursorW
+    fun @apply(hInstance: HINSTANCE, lpCursorName: I32 /* LPCTSTR */): HCURSOR =>
+        @LoadCursorW[HCURSOR](hInstance, lpCursorName)
 
 primitive MoveWindow
     fun @apply(hWnd: HWND, x: I32, y: I32, nWidth: I32, nHeight: I32, bRepaint: I32 /* BOOL */): I32 /* BOOL */ =>
@@ -282,6 +317,10 @@ primitive RegisterClassA
     fun @apply(lpWndClass: MaybePointer[WNDCLASSA]): ATOM =>
         @RegisterClassA[ATOM](lpWndClass)
 
+primitive RegisterClassW
+    fun @apply(lpWndClass: MaybePointer[WNDCLASSW]): ATOM =>
+        @RegisterClassW[ATOM](lpWndClass)
+
 primitive SetLastError
     fun @apply(dwErrCode: DWORD): VOID =>
         @SetLastError[VOID](dwErrCode)
@@ -290,6 +329,11 @@ primitive SetWindowLongPtrA
     // See the comments for GetWindowLongPtrA on why we have changed the types
     fun @apply(hWnd: HWND, nIndex: UINT /* I32 */, dwNewLong: HWND /* LONGPTR */): LONGPTR =>
         @SetWindowLongPtrA[LONGPTR](hWnd, nIndex, dwNewLong)
+
+primitive SetWindowLongPtrW
+    // See the comments for GetWindowLongPtrA on why we have changed the types
+    fun @apply(hWnd: HWND, nIndex: UINT /* I32 */, dwNewLong: HWND /* LONGPTR */): LONGPTR =>
+        @SetWindowLongPtrW[LONGPTR](hWnd, nIndex, dwNewLong)
 
 primitive ShowWindow
     fun @apply(hWnd: HWND, nCmdShow: I32): I32 /* BOOL */ =>
