@@ -8,3 +8,5 @@ It's currently a work in progress, but it includes a helper package (winApp) and
 * do event handling
 * convert between Pony strings and wide character strings (WCHAR_T)
 * draw to a window using Cario
+
+It has been tested on Windows 10 only.
