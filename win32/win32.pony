@@ -22,19 +22,13 @@ type INTPTR    is I64
 type LONG      is I32
 type LONGPTR   is I64
 type LPARAM    is LONGPTR
+type LPBOOL    is Pointer[U8] tag
+type LPCCH     is LPSTR
 type LPCSTR    is Pointer[U8] tag
-
-// use LPCWSTR when Pony supports WCHAR
-// and update to the "W" functions too
-type LPCTSTR   is LPCSTR
-
+type LPCWCH    is LPWSTR
 type LPCWSTR   is WCHAR
 type LPSTR     is Pointer[U8] tag
-
-// use LPWSTR when Pony supports WCHAR
-// and update to the "W" functions too
-type LPTSTR    is LPSTR
-
+type LPWSTR    is WCHAR
 type LRESULT   is LONGPTR
 type LPVOID    is Pointer[U8] tag
 type PVOID     is Pointer[U8] tag
@@ -44,6 +38,11 @@ type VOID      is None
 type WCHAR     is Pointer[U16] tag
 type WORD      is U16
 type WPARAM    is UINTPTR
+
+// Constants - Code Pages
+
+primitive CPUTF8
+    fun apply(): UINT => 65001
 
 // Constants - Colors
 
@@ -162,7 +161,7 @@ struct RECT
 
 // we use WNDCLASS instead of WNDCLASSEX because
 // there is no way to set cbSize in Pony
-struct WNDCLASS
+struct WNDCLASSA
     var style: UINT = 0
     
     var lpfnWndProc: @{(HWND, UINT, WPARAM, LPARAM): LRESULT} = 
@@ -174,8 +173,27 @@ struct WNDCLASS
     var hIcon: HICON = HICON
     var hCursor: HCURSOR = HCURSOR
     var hbrBackground: HBRUSH = HBRUSH
-    var lpszMenuName: LPCTSTR = LPCTSTR
-    var lpszClassName: LPCTSTR = LPCTSTR
+    var lpszMenuName: LPCSTR = LPCSTR
+    var lpszClassName: LPCSTR = LPCSTR
+    
+    new create() => None
+
+// we use WNDCLASS instead of WNDCLASSEX because
+// there is no way to set cbSize in Pony
+struct WNDCLASSW
+    var style: UINT = 0
+    
+    var lpfnWndProc: @{(HWND, UINT, WPARAM, LPARAM): LRESULT} = 
+        @{(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM): LRESULT => 0}
+    
+    var cbClsExtra: I32 = 0
+    var cbWndExtra: I32 = 0
+    var hInstance: HINSTANCE = HINSTANCE
+    var hIcon: HICON = HICON
+    var hCursor: HCURSOR = HCURSOR
+    var hbrBackground: HBRUSH = HBRUSH
+    var lpszMenuName: LPCWSTR = LPCWSTR
+    var lpszClassName: LPCWSTR = LPCWSTR
     
     new create() => None
 
@@ -186,7 +204,7 @@ primitive BeginPaint
         @BeginPaint[HDC](hWnd, lpPaint)
 
 primitive CreateWindowExA
-    fun @apply(dwExStyle: DWORD, lpClassName: LPCTSTR, lpWindowName: LPCTSTR, dwStyle: DWORD, x: I32, y: I32, 
+    fun @apply(dwExStyle: DWORD, lpClassName: LPCSTR /* LPCTSTR */, lpWindowName: LPCSTR /* LPCTSTR */, dwStyle: DWORD, x: I32, y: I32, 
                nWidth: I32, nHeight: I32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID): HWND =>
         
         if hMenu._1 > 0 then
@@ -239,7 +257,7 @@ primitive GetWindowRect
 struct CSTRINGOUT
     
 primitive GetWindowTextA
-    fun @apply(hWnd: HWND, lpString: LPTSTR, nMaxCount: I32): I32 =>
+    fun @apply(hWnd: HWND, lpString: LPCSTR /* LPTSTR */, nMaxCount: I32): I32 =>
         @GetWindowTextA[I32](hWnd, lpString, nMaxCount)
 
 primitive LoadCursorA
@@ -250,12 +268,18 @@ primitive MoveWindow
     fun @apply(hWnd: HWND, x: I32, y: I32, nWidth: I32, nHeight: I32, bRepaint: I32 /* BOOL */): I32 /* BOOL */ =>
         @MoveWindow[I32 /* BOOL */](hWnd, x, y, nWidth, nHeight, bRepaint)
 
+primitive MultiByteToWideChar
+    fun @apply(CodePage: UINT, dwFlags: DWORD, lpMultiByteStr: LPCCH, cbMultiByte: I32, 
+               lpWideCharStr: LPWSTR, cchWideChar: I32): I32 =>
+        
+        @MultiByteToWideChar[I32](CodePage, dwFlags, lpMultiByteStr, cbMultiByte, lpWideCharStr, cchWideChar)
+
 primitive PostQuitMessage
     fun @apply(nExitCode: I32): VOID =>
         @PostQuitMessage[VOID](nExitCode)
 
 primitive RegisterClassA
-    fun @apply(lpWndClass: MaybePointer[WNDCLASS]): ATOM =>
+    fun @apply(lpWndClass: MaybePointer[WNDCLASSA]): ATOM =>
         @RegisterClassA[ATOM](lpWndClass)
 
 primitive SetLastError
@@ -274,6 +298,13 @@ primitive ShowWindow
 primitive TranslateMessage
     fun @apply(lpMsg: MaybePointer[MSG]): I32 /* BOOL */ =>
         @TranslateMessage[I32 /* BOOL */](lpMsg)
+
+primitive WideCharToMultiByte
+    fun @apply(CodePage: UINT, dwFlags: DWORD, lpWideCharStr: LPCWCH, cchWideChar: I32, 
+               lpMultiByteStr: LPSTR, cbMultiByte: I32, lpDefaultChar: LPCCH, lpUsedDefaultChar: LPBOOL): I32 =>
+        
+        @WideCharToMultiByte[I32](CodePage, dwFlags, lpWideCharStr, cchWideChar, 
+                                  lpMultiByteStr, cbMultiByte, lpDefaultChar, lpUsedDefaultChar)
 
 // Macros
 

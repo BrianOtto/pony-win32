@@ -84,10 +84,11 @@ primitive Event
         
         let txtFldHandle = GetWindowLongPtrA(lParam, GWLPUSERDATA())
         
-        // TODO: use the txtFld buffer logic to get WCHAR conversion working, i.e. in C
-        // int string_as_wchar_len = MultiByteToWideChar(CP_UTF8, 0, string, strlen(string) + 1, NULL, 0);
-        // string_as_wchar = (wchar_t *) malloc((string_as_wchar_len + 1) * sizeof(wchar_t));
-        // MultiByteToWideChar(CP_UTF8, 0, string, strlen(string) + 1, string_as_wchar, string_as_wchar_len);
+        // experimental WCHAR conversion
+        // TODO: add support for the "W" functions
+        var wcString = Util.stringToWideChar("Is this working?")
+        var csString = Util.wideCharToString(wcString)
+        Debug.out(csString)
         
         var txtFldMax: USize = 20
         

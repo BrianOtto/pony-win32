@@ -84,17 +84,17 @@ class Window
         _settings = ws
     
     fun ref init(): DWORD =>
-        var windowClassName: LPCTSTR = LPCTSTR
+        var windowClassName: LPCSTR = LPCSTR
         var windowClassInstance: HINSTANCE = HINSTANCE
         
         if _settings.style.systemClass == "" then
-            var windowClass: WNDCLASS ref = WNDCLASS
+            var windowClass: WNDCLASSA ref = WNDCLASSA
             windowClass.lpfnWndProc = _messageHandler
             windowClass.hCursor = LoadCursorA(HINSTANCE, _settings.style.cursor)
             windowClass.hbrBackground = GetSysColorBrush(_settings.style.backgroundColor)
             windowClass.lpszClassName = "winApp".cstring() // TODO: use a random name
             
-            let windowClassAtom = RegisterClassA(MaybePointer[WNDCLASS](windowClass))
+            let windowClassAtom = RegisterClassA(MaybePointer[WNDCLASSA](windowClass))
             
             if windowClassAtom == 0 then
                 return _setError("RegisterClassW")
@@ -210,3 +210,38 @@ class Window
         // TODO: develop an automatic layout system
         _settings.x = (parentWidth - _settings.width) / 2
         _settings.y = (parentHeight - _settings.height) / 2
+
+primitive Util
+    fun stringToWideChar(s: String): Array[U16] =>
+        // get the size of the buffer required for the wide char
+        var wcLength = MultiByteToWideChar(CPUTF8(), 0, s.cpointer(), s.size().i32(), Pointer[U16], 0)
+        
+        // create a U16 buffer for the wide char by allocating space in a pointer
+        var wcString = Array[U16].from_cpointer(Pointer[U16], wcLength.usize(), wcLength.usize())
+        
+        // push a NULL terminator onto the buffer and then reduce the size by one to keep the original length
+        // I don't know why this is necessary and using other array functions causes the MultiByteToWideChar to fail
+        try wcString.>push(0).>pop()? end
+        
+        MultiByteToWideChar(CPUTF8(), 0, s.cpointer(), s.size().i32(), wcString.cpointer(), wcLength)
+        
+        wcString
+    
+    fun wideCharToString(wcString: Array[U16]): String =>
+        // get the size of the buffer required for the string
+        var csLength = WideCharToMultiByte(CPUTF8(), 0, wcString.cpointer(), wcString.size().i32(), Pointer[U8], 0, 
+                                           Pointer[U8], Pointer[U8])
+        
+        // create a U8 buffer for the string by allocating space in a pointer
+        // This must be done inside a recover so that we can retrieve a val 
+        // for the from_array() conversion that gets returned
+        var csString = recover val
+            var csStringAsRef = Array[U8].from_cpointer(Pointer[U8], csLength.usize(), csLength.usize())
+            try csStringAsRef.>push(0).>pop()? end // see the note in stringToWideChar()
+            csStringAsRef
+        end
+        
+        WideCharToMultiByte(CPUTF8(), 0, wcString.cpointer(), wcString.size().i32(), csString.cpointer(), csLength, 
+                            Pointer[U8], Pointer[U8])
+        
+        String.from_array(csString)
